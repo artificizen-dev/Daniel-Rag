@@ -24,6 +24,7 @@ import { backendURL } from "@/app/utils/config";
 import { Resource, ResourceResponse } from "@/app/interfaces";
 
 export default function PreviousResourcesPage() {
+  const [messageApi, contextHolder] = message.useMessage();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -67,18 +68,16 @@ export default function PreviousResourcesPage() {
     fetchResources();
   }, []);
 
-  // Handle resource deletion
   const handleDelete = async (resourceId: string) => {
     try {
+      const formData = new FormData();
+      formData.append("action", "delete");
+      formData.append("file_id", resourceId);
+
       const response = await fetch(`${backendURL}/api/update_resources`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "delete",
-          file_id: resourceId,
-        }),
+        // Remove the Content-Type header - FormData will set it automatically
+        body: formData,
       });
 
       if (!response.ok) {
@@ -89,10 +88,18 @@ export default function PreviousResourcesPage() {
       setResources((prevResources) =>
         prevResources.filter((resource) => resource.file_id !== resourceId)
       );
-      message.success("Resource deleted successfully");
+      messageApi.open({
+        type: "success",
+        content: "resource deleted successfully",
+        duration: 10,
+      });
     } catch (err) {
       console.error("Deletion error:", err);
-      message.error("Failed to delete the resource");
+      messageApi.open({
+        type: "error",
+        content: "File Deletion error",
+        duration: 10,
+      });
     }
   };
 
@@ -103,14 +110,12 @@ export default function PreviousResourcesPage() {
     setEditModalVisible(true);
   };
 
-  // Handle edit form submission
   const handleEdit = async (values: {
     upload: { fileList: { originFileObj: File }[] };
   }) => {
     if (!editingResource) return;
 
     try {
-      // Extract file from upload object
       const fileObj = values.upload?.fileList?.[0]?.originFileObj;
 
       if (!fileObj) {
@@ -133,18 +138,24 @@ export default function PreviousResourcesPage() {
         throw new Error("Failed to update resource");
       }
 
-      message.success("Resource updated successfully");
+      messageApi.open({
+        type: "error",
+        content: "resource updated successfully",
+        duration: 10,
+      });
       setEditModalVisible(false);
 
-      // Refresh resources to get updated information
       fetchResources(pagination.current, pagination.pageSize);
     } catch (err) {
       console.error("Update error:", err);
-      message.error("Failed to update the resource");
+      messageApi.open({
+        type: "error",
+        content: "Resource Update error",
+        duration: 10,
+      });
     }
   };
 
-  // Format file size (already formatted in the API response)
   const formatFileSize = (fileSize: string): string => {
     return fileSize;
   };
@@ -272,68 +283,72 @@ export default function PreviousResourcesPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">
-        Previous Resources
-      </h1>
+    <>
+      {contextHolder}
 
-      <Table
-        columns={columns}
-        dataSource={resources}
-        rowKey="file_id"
-        pagination={{
-          current: pagination.current,
-          pageSize: pagination.pageSize,
-          total: pagination.total,
-          showSizeChanger: true,
-        }}
-        loading={loading}
-        onChange={handleTableChange}
-        className="bg-white rounded-lg shadow-md"
-        style={{ minHeight: "200px" }}
-        locale={{
-          emptyText: (
-            <Empty
-              description="No resources found"
-              style={{ margin: "80px 0" }}
-            />
-          ),
-        }}
-      />
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+          Previous Resources
+        </h1>
 
-      {/* Edit Resource Modal */}
-      <Modal
-        title="Edit Resource"
-        open={editModalVisible}
-        onCancel={() => setEditModalVisible(false)}
-        footer={null}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleEdit}
-          className="mt-4"
+        <Table
+          columns={columns}
+          dataSource={resources}
+          rowKey="file_id"
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+          }}
+          loading={loading}
+          onChange={handleTableChange}
+          className="bg-white rounded-lg shadow-md"
+          style={{ minHeight: "200px" }}
+          locale={{
+            emptyText: (
+              <Empty
+                description="No resources found"
+                style={{ margin: "80px 0" }}
+              />
+            ),
+          }}
+        />
+
+        {/* Edit Resource Modal */}
+        <Modal
+          title="Edit Resource"
+          open={editModalVisible}
+          onCancel={() => setEditModalVisible(false)}
+          footer={null}
         >
-          <Form.Item
-            name="upload"
-            label="Replace File"
-            rules={[
-              { required: true, message: "Please select a file to upload" },
-            ]}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleEdit}
+            className="mt-4"
           >
-            <Upload beforeUpload={() => false} maxCount={1}>
-              <Button icon={<UploadOutlined />}>Select File</Button>
-            </Upload>
-          </Form.Item>
+            <Form.Item
+              name="upload"
+              label="Replace File"
+              rules={[
+                { required: true, message: "Please select a file to upload" },
+              ]}
+            >
+              <Upload beforeUpload={() => false} maxCount={1}>
+                <Button icon={<UploadOutlined />}>Select File</Button>
+              </Upload>
+            </Form.Item>
 
-          <div className="flex justify-end space-x-2 mt-6">
-            <Button onClick={() => setEditModalVisible(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit">
-              Upload File
-            </Button>
-          </div>
-        </Form>
-      </Modal>
-    </div>
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button onClick={() => setEditModalVisible(false)}>Cancel</Button>
+              <Button type="primary" htmlType="submit">
+                Upload File
+              </Button>
+            </div>
+          </Form>
+        </Modal>
+      </div>
+    </>
   );
 }
