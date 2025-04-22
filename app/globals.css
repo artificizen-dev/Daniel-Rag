@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-500: oklch(0.54 0.19 262); /* #3B82F6 - Deep blue */
+  --color-secondary-500: oklch(0.63 0.14 189); /* #0D9488 - Teal */
+  --color-accent-500: oklch(0.77 0.16 80); /* #F59E0B - Amber */
+
+  /* Primary blue variations */
+  --color-primary-50: oklch(0.96 0.02 262);
+  --color-primary-100: oklch(0.92 0.04 262);
+  --color-primary-200: oklch(0.85 0.07 262);
+  --color-primary-300: oklch(0.75 0.11 262);
+  --color-primary-400: oklch(0.65 0.15 262);
+  --color-primary-600: oklch(0.47 0.16 262);
+  --color-primary-700: oklch(0.4 0.14 262);
+  --color-primary-800: oklch(0.33 0.11 262);
+  --color-primary-900: oklch(0.26 0.08 262);
+
+  /* Secondary teal variations */
+  --color-secondary-50: oklch(0.96 0.02 189);
+  --color-secondary-100: oklch(0.91 0.03 189);
+  --color-secondary-200: oklch(0.85 0.05 189);
+  --color-secondary-300: oklch(0.76 0.09 189);
+  --color-secondary-400: oklch(0.68 0.12 189);
+  --color-secondary-600: oklch(0.57 0.13 189);
+  --color-secondary-700: oklch(0.5 0.11 189);
+  --color-secondary-800: oklch(0.42 0.09 189);
+  --color-secondary-900: oklch(0.35 0.07 189);
+
+  /* Accent amber variations */
+  --color-accent-50: oklch(0.97 0.02 80);
+  --color-accent-100: oklch(0.94 0.04 80);
+  --color-accent-200: oklch(0.9 0.08 80);
+  --color-accent-300: oklch(0.85 0.12 80);
+  --color-accent-400: oklch(0.8 0.14 80);
+  --color-accent-600: oklch(0.72 0.15 80);
+  --color-accent-700: oklch(0.65 0.13 80);
+  --color-accent-800: oklch(0.57 0.11 80);
+  --color-accent-900: oklch(0.5 0.08 80);
+
+  /* Neutral slate variations for text and backgrounds */
+  --color-slate-50: oklch(0.98 0.01 262);
+  --color-slate-100: oklch(0.95 0.01 262);
+  --color-slate-200: oklch(0.9 0.02 262);
+  --color-slate-300: oklch(0.84 0.02 262);
+  --color-slate-400: oklch(0.75 0.02 262);
+  --color-slate-500: oklch(0.65 0.01 262);
+  --color-slate-600: oklch(0.55 0.01 262);
+  --color-slate-700: oklch(0.45 0.01 262);
+  --color-slate-800: oklch(0.35 0.01 262);
+  --color-slate-900: oklch(0.25 0.01 262);
+  --color-slate-950: oklch(0.17 0.01 262);
+}
+
+@tailwind utilities;
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white rounded-md px-4 py-2 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-500 hover:bg-secondary-600 text-white rounded-md px-4 py-2 transition-colors;
+  }
+
+  .btn-accent {
+    @apply bg-accent-500 hover:bg-accent-600 text-white rounded-md px-4 py-2 transition-colors;
+  }
+
+  .card {
+    @apply bg-white dark:bg-slate-800 rounded-lg shadow-md p-6;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2 rounded-md border border-slate-300 dark:border-slate-600 
+           bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100
+           focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none;
+  }
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: #e5e7eb transparent; /* For Firefox */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px; /* Thin scrollbar */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb; /* Light gray color */
+  border-radius: 20px;
+}
