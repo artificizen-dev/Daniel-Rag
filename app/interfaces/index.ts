@@ -5,15 +5,24 @@ export interface Chatroom {
   updated_at?: string;
 }
 
+// export interface Message {
+//   id: string;
+//   content: string;
+//   sender: "user" | "assistant";
+//   created_at: string;
+//   attachments?: {
+//     type: string;
+//     url: string;
+//   }[];
+// }
+
 export interface Message {
   id: string;
   content: string;
   sender: "user" | "assistant";
   created_at: string;
-  attachments?: {
-    type: string;
-    url: string;
-  }[];
+  attachments?: Array<{ type: string; url: string }>;
+  references?: Resource[];
 }
 
 export interface MessageListProps {
@@ -65,21 +74,23 @@ export interface TablePagination {
   total?: number;
 }
 
-export interface Resource {
-  file_id: string;
-  file_name: string;
-  file_type: string;
-  file_size: string;
-  chunk_count: number;
-  status: string;
-  uploaded_at: string;
-  file_link?: string;
-}
-
 export interface ResourceResponse {
   total_count: number;
   page: number;
   page_size: number;
   total_pages: number;
   resources: Resource[];
+}
+
+export interface Resource {
+  file_id: string;
+  file_type: string;
+  file_link?: string;
+  chunk_id: string;
+  file_name: string;
+  page_number: number;
+  gcp_bucket_url: string;
+  text_content: string;
+  resource_id: string;
+  score: number;
 }
