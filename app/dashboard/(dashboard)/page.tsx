@@ -81,13 +81,13 @@ export default function UploadResourcesPage() {
         throw new Error(result.message || "Upload failed");
       }
 
-      // Reset files after successful upload
-      setFiles([]);
       messageApi.open({
         type: "success",
         content: "File Uploaded Successfully",
         duration: 10,
       });
+      // Reset files after successful upload
+      setFiles([]);
     } catch (error) {
       console.error("Upload error:", error);
       messageApi.open({

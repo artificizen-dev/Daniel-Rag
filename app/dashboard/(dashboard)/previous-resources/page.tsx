@@ -139,7 +139,7 @@ export default function PreviousResourcesPage() {
       }
 
       messageApi.open({
-        type: "error",
+        type: "success",
         content: "resource updated successfully",
         duration: 10,
       });

@@ -1,169 +1,3 @@
-// "use client";
-
-// import React from "react";
-// import Image from "next/image";
-// import { Message, MessageListProps } from "@/app/interfaces";
-// import ReactMarkdown from "react-markdown";
-// import remarkGfm from "remark-gfm";
-// import Avatar from "boring-avatars";
-// import { FaRobot } from "react-icons/fa";
-
-// export default function MessageList({
-//   messages,
-//   isLoading,
-//   messagesEndRef,
-// }: MessageListProps) {
-//   // Format timestamp
-//   const formatTime = (timestamp: string) => {
-//     const date = new Date(timestamp);
-//     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-//   };
-
-//   // Check if a message has image attachments
-//   const hasImageAttachments = (message: Message) => {
-//     return message.attachments?.some((attachment) =>
-//       attachment.type.startsWith("image/")
-//     );
-//   };
-
-//   // Get image attachments from a message
-//   const getImageAttachments = (message: Message) => {
-//     return message.attachments?.filter((attachment) =>
-//       attachment.type.startsWith("image/")
-//     );
-//   };
-
-//   return (
-//     <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-//       {messages.length === 0 && !isLoading ? (
-//         <div className="h-full flex items-center justify-center">
-//           <div className="text-center p-6 max-w-md">
-//             <h3 className="text-xl font-semibold text-gray-700 mb-2">
-//               Start a new conversation
-//             </h3>
-//             <p className="text-gray-500">
-//               Send a message to begin chatting. Your conversations will be saved
-//               here.
-//             </p>
-//           </div>
-//         </div>
-//       ) : (
-//         <>
-//           {isLoading ? (
-//             <div className="flex justify-center py-6">
-//               <div className="animate-pulse flex space-x-2">
-//                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-//                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-//                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-//               </div>
-//             </div>
-//           ) : (
-//             messages.map((message) => (
-//               <div
-//                 key={message.id}
-//                 className={`flex items-start gap-3 ${
-//                   message.sender === "user" ? "justify-end" : "justify-start"
-//                 }`}
-//               >
-//                 {message.sender !== "user" && (
-//                   <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center">
-//                     <FaRobot size={20} />
-//                   </div>
-//                 )}
-
-//                 <div
-//                   className={`max-w-[80%] sm:max-w-[70%] rounded-lg p-4 ${
-//                     message.sender === "user"
-//                       ? "bg-gray-100 text-gray-800"
-//                       : "bg-white  text-gray-800"
-//                   } ${
-//                     message.id.startsWith("loading-") ? "animate-pulse" : ""
-//                   }`}
-//                 >
-//                   {message.id.startsWith("loading-") ? (
-//                     <div className="flex space-x-2 justify-center items-center h-6">
-//                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-//                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-//                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
-//                     </div>
-//                   ) : (
-//                     <>
-//                       {hasImageAttachments(message) && (
-//                         <div className="mb-3 space-y-2">
-//                           {getImageAttachments(message)?.map(
-//                             (attachment, index) => (
-//                               <div
-//                                 key={index}
-//                                 className="relative overflow-hidden rounded-md"
-//                               >
-//                                 <Image
-//                                   src={attachment.url}
-//                                   alt="Attached image"
-//                                   width={300}
-//                                   height={200}
-//                                   className="max-w-full object-cover rounded-md"
-//                                   style={{ maxHeight: "200px" }}
-//                                 />
-//                               </div>
-//                             )
-//                           )}
-//                         </div>
-//                       )}
-//                       <div className="markdown-message prose prose-sm max-w-none">
-//                         <ReactMarkdown
-//                           remarkPlugins={[remarkGfm]}
-//                           components={{
-//                             ul: ({ node, ...props }) => (
-//                               <ul className="list-disc pl-5 my-2" {...props} />
-//                             ),
-//                             ol: ({ node, ...props }) => (
-//                               <ol
-//                                 className="list-decimal pl-5 my-2"
-//                                 {...props}
-//                               />
-//                             ),
-//                             li: ({ node, ...props }) => (
-//                               <li className="my-1" {...props} />
-//                             ),
-//                           }}
-//                         >
-//                           {message.content}
-//                         </ReactMarkdown>
-//                       </div>
-//                       <div className="text-xs mt-2 text-gray-500 text-right">
-//                         {formatTime(message.created_at)}
-//                       </div>
-//                     </>
-//                   )}
-//                 </div>
-
-//                 {message.sender === "user" && (
-//                   <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
-//                     <Avatar
-//                       size={30}
-//                       name="Margaret Brent"
-//                       variant="beam"
-//                       colors={[
-//                         "#92A1C6",
-//                         "#146A7C",
-//                         "#F0AB3D",
-//                         "#C271B4",
-//                         "#C20D90",
-//                       ]}
-//                     />
-//                   </div>
-//                 )}
-//               </div>
-//             ))
-//           )}
-//           <div ref={messagesEndRef} />
-//         </>
-//       )}
-//     </div>
-//   );
-// }
-
-// components/Chat/MessageList.tsx
 "use client";
 
 import React from "react";
@@ -176,7 +10,6 @@ import { FaRobot } from "react-icons/fa";
 import { HiOutlineDocument } from "react-icons/hi";
 import { BsDownload } from "react-icons/bs";
 
-// Add resource interface
 interface Resource {
   file_id: string;
   file_name: string;
@@ -360,7 +193,7 @@ export default function MessageList({
                                 {resources.map((resource) => (
                                   <a
                                     key={resource.file_id}
-                                    href={resource.file_link}
+                                    href={`${resource?.file_link}?page=${resource?.chunk_count}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center p-2 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors group"
