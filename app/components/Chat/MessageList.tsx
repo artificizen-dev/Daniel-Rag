@@ -193,7 +193,7 @@ export default function MessageList({
                                 {resources.map((resource) => (
                                   <a
                                     key={resource.file_id}
-                                    href={`${resource?.file_link}?page=${resource?.chunk_count}`}
+                                    href={`${resource?.file_link}#page=${resource?.chunk_count}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center p-2 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors group"

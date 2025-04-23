@@ -27,6 +27,7 @@ export default function PreviousResourcesPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -110,20 +111,69 @@ export default function PreviousResourcesPage() {
     setEditModalVisible(true);
   };
 
+  // const handleEdit = async (values: {
+  //   upload: { fileList: { originFileObj: File }[] };
+  // }) => {
+  //   if (!editingResource) return;
+
+  //   try {
+  //     setIsUpdating(true);
+  //     const fileObj = values.upload?.fileList?.[0]?.originFileObj;
+
+  //     if (!fileObj) {
+  //       message.error("Please select a file to upload");
+  //       return;
+  //     }
+
+  //     // Use FormData for file upload
+  //     const formData = new FormData();
+  //     formData.append("action", "update");
+  //     formData.append("file_id", editingResource.file_id);
+  //     formData.append("files", fileObj);
+
+  //     const response = await fetch(`${backendURL}/api/update_resources`, {
+  //       method: "POST",
+  //       body: formData,
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error("Failed to update resource");
+  //     }
+
+  //     messageApi.open({
+  //       type: "success",
+  //       content: "resource updated successfully",
+  //       duration: 10,
+  //     });
+  //     setEditModalVisible(false);
+
+  //     fetchResources(pagination.current, pagination.pageSize);
+  //   } catch (err) {
+  //     console.error("Update error:", err);
+  //     messageApi.open({
+  //       type: "error",
+  //       content: "Resource Update error",
+  //       duration: 10,
+  //     });
+  //   }
+  // };
+
   const handleEdit = async (values: {
     upload: { fileList: { originFileObj: File }[] };
   }) => {
     if (!editingResource) return;
 
     try {
+      setIsUpdating(true);
+
       const fileObj = values.upload?.fileList?.[0]?.originFileObj;
 
       if (!fileObj) {
         message.error("Please select a file to upload");
+        setIsUpdating(false);
         return;
       }
 
-      // Use FormData for file upload
       const formData = new FormData();
       formData.append("action", "update");
       formData.append("file_id", editingResource.file_id);
@@ -153,6 +203,8 @@ export default function PreviousResourcesPage() {
         content: "Resource Update error",
         duration: 10,
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -342,8 +394,8 @@ export default function PreviousResourcesPage() {
 
             <div className="flex justify-end space-x-2 mt-6">
               <Button onClick={() => setEditModalVisible(false)}>Cancel</Button>
-              <Button type="primary" htmlType="submit">
-                Upload File
+              <Button type="primary" htmlType="submit" loading={isUpdating}>
+                {isUpdating ? "Updating..." : "Upload File"}
               </Button>
             </div>
           </Form>
