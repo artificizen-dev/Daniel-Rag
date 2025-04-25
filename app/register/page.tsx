@@ -1,9 +1,10 @@
 // app/register/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import axios from "axios";
 import {
   FiUser,
   FiMail,
@@ -13,36 +14,129 @@ import {
   FiEyeOff,
 } from "react-icons/fi";
 import { BsChatSquareDotsFill } from "react-icons/bs";
+import { backendURL } from "@/app/utils/config";
+import { handleError, handleSuccess } from "../utils/messageUtils";
+
+// Validation types
+interface ValidationErrors {
+  name?: string;
+  email?: string;
+  password?: string;
+  general?: string;
+}
 
 const Register = () => {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Handle input changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData({ ...formData, [id]: value });
+
+    // Mark field as touched
+    setTouched({ ...touched, [id]: true });
+  };
+
+  // Handle input blur for validation
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { id } = e.target;
+    setTouched({ ...touched, [id]: true });
+  };
+
+  // Validate the form
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    // Username validation
+    if (!formData.name) {
+      newErrors.name = "Username is required";
+    } else if (formData.name.length < 3) {
+      newErrors.name = "Username must be at least 3 characters";
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.name)) {
+      newErrors.name =
+        "Username can only contain letters, numbers, and underscores";
+    }
+
+    // Email validation
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    // Password validation - only 6 character length requirement
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Run validation whenever form data changes and field is touched
+  useEffect(() => {
+    if (Object.keys(touched).length > 0) {
+      validateForm();
+    }
+  }, [formData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Final validation before submission
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
-    setError("");
 
-    // Simulate registration
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await axios.post(
+        `${backendURL}/api/auth/signup`,
+        formData
+      );
 
-      // Basic validation (would be replaced with actual registration logic)
-      if (username && email && password && password.length >= 6) {
-        router.push("/dashboard");
-      } else if (!username || !email || !password) {
-        setError("All fields are required");
-      } else if (password.length < 6) {
-        setError("Password must be at least 6 characters");
+      console.log(response);
+
+      handleSuccess("Account created successfully! Redirecting to login...");
+
+      // Redirect after a short delay to allow user to see the success message
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage =
+          error.response?.data?.message ||
+          "Registration failed. Please try again.";
+        setErrors({ ...errors, general: errorMessage });
+        handleError(errorMessage);
       } else {
-        setError("Registration failed. Please try again.");
+        setErrors({
+          ...errors,
+          general: "An unexpected error occurred. Please try again.",
+        });
+        handleError("An unexpected error occurred. Please try again.");
       }
-    }, 1000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper function to determine if a field has an error
+  const hasError = (field: keyof ValidationErrors): boolean => {
+    return touched[field] === true && Boolean(errors[field]);
   };
 
   return (
@@ -61,13 +155,13 @@ const Register = () => {
 
           {/* Form section */}
           <div className="p-6 sm:p-8">
-            {error && (
+            {errors.general && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
-                {error}
+                {errors.general}
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="space-y-5">
                 {/* Username field */}
                 <div className="space-y-2">
@@ -79,18 +173,30 @@ const Register = () => {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <FiUser className="text-slate-400" />
+                      <FiUser
+                        className={`${
+                          hasError("name") ? "text-red-500" : "text-slate-400"
+                        }`}
+                      />
                     </div>
                     <input
-                      id="username"
+                      id="name"
                       type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="w-full px-4 py-2 pl-10 rounded-md border border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none text-slate-900"
+                      value={formData.name}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className={`w-full px-4 py-2 pl-10 rounded-md border ${
+                        hasError("name")
+                          ? "border-red-500 focus:ring-red-500/50 focus:border-red-500"
+                          : "border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500"
+                      } outline-none text-slate-900`}
                       placeholder="johndoe"
                       required
                     />
                   </div>
+                  {hasError("name") && (
+                    <p className="text-xs text-red-600 mt-1">{errors.name}</p>
+                  )}
                 </div>
 
                 {/* Email field */}
@@ -103,18 +209,30 @@ const Register = () => {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <FiMail className="text-slate-400" />
+                      <FiMail
+                        className={`${
+                          hasError("email") ? "text-red-500" : "text-slate-400"
+                        }`}
+                      />
                     </div>
                     <input
                       id="email"
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-2 pl-10 rounded-md border border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none text-slate-900"
+                      value={formData.email}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className={`w-full px-4 py-2 pl-10 rounded-md border ${
+                        hasError("email")
+                          ? "border-red-500 focus:ring-red-500/50 focus:border-red-500"
+                          : "border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500"
+                      } outline-none text-slate-900`}
                       placeholder="you@example.com"
                       required
                     />
                   </div>
+                  {hasError("email") && (
+                    <p className="text-xs text-red-600 mt-1">{errors.email}</p>
+                  )}
                 </div>
 
                 {/* Password field */}
@@ -127,17 +245,27 @@ const Register = () => {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <FiLock className="text-slate-400" />
+                      <FiLock
+                        className={`${
+                          hasError("password")
+                            ? "text-red-500"
+                            : "text-slate-400"
+                        }`}
+                      />
                     </div>
                     <input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-2 pl-10 pr-10 rounded-md border border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none text-slate-900"
+                      value={formData.password}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className={`w-full px-4 py-2 pl-10 pr-10 rounded-md border ${
+                        hasError("password")
+                          ? "border-red-500 focus:ring-red-500/50 focus:border-red-500"
+                          : "border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500"
+                      } outline-none text-slate-900`}
                       placeholder="••••••••"
                       required
-                      minLength={6}
                     />
                     <button
                       type="button"
@@ -147,9 +275,15 @@ const Register = () => {
                       {showPassword ? <FiEyeOff /> : <FiEye />}
                     </button>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Must be at least 6 characters
-                  </p>
+                  {hasError("password") ? (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.password}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Must be at least 6 characters
+                    </p>
+                  )}
                 </div>
 
                 {/* Submit button */}

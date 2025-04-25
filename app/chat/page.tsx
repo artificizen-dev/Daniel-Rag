@@ -1,15 +1,16 @@
 // "use client";
 
-// import { useEffect, useState } from "react";
+// import { useEffect, useState, Suspense } from "react";
 // import { useRouter, useSearchParams } from "next/navigation";
-// import { backendURL } from "../utils/config";
+// import { backendURL, getToken } from "../utils/config";
 // import ChatArea from "../components/Chat/ChatArea";
 // import ChatSidebar from "../components/Chat/ChatSidebar";
 // import { v4 as uuidv4 } from "uuid";
 // import { Chatroom } from "../interfaces";
 
-// export default function ChatPage() {
+// function ChatPageContent() {
 //   const router = useRouter();
+//   const token = getToken()
 //   const searchParams = useSearchParams();
 //   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 //   const [currentChatroomId, setCurrentChatroomId] = useState<string | null>(
@@ -52,7 +53,6 @@
 
 //   useEffect(() => {
 //     setIsMounted(true);
-
 //     fetchChatrooms();
 //   }, []);
 
@@ -115,15 +115,30 @@
 //   );
 // }
 
+// export default function ChatPage() {
+//   return (
+//     <Suspense
+//       fallback={
+//         <div className="h-screen bg-white flex items-center justify-center">
+//           Loading...
+//         </div>
+//       }
+//     >
+//       <ChatPageContent />
+//     </Suspense>
+//   );
+// }
+
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { backendURL } from "../utils/config";
+import { backendURL, getToken } from "../utils/config";
 import ChatArea from "../components/Chat/ChatArea";
 import ChatSidebar from "../components/Chat/ChatSidebar";
 import { v4 as uuidv4 } from "uuid";
 import { Chatroom } from "../interfaces";
+import { handleError } from "@/app/utils/messageUtils";
 
 function ChatPageContent() {
   const router = useRouter();
@@ -138,8 +153,23 @@ function ChatPageContent() {
 
   const fetchChatrooms = async () => {
     setIsLoading(true);
+
+    // Get the auth token
+    const token = getToken();
+    if (!token) {
+      handleError("Authentication required to access chat");
+      router.push("/");
+      return;
+    }
+
     try {
-      const response = await fetch(`${backendURL}/api/chatrooms`);
+      const response = await fetch(`${backendURL}/api/chatrooms`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
       if (!response.ok) throw new Error("Failed to fetch chatrooms");
 
       const data = await response.json();
@@ -162,12 +192,26 @@ function ChatPageContent() {
     } catch (error) {
       console.error("Error fetching chatrooms:", error);
       setChatrooms([]);
+
+      // Check if the error is due to authentication issues
+      if (error instanceof Error && error.message.includes("401")) {
+        handleError("Authentication expired. Please log in again.");
+        router.push("/");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // Check for authentication before mounting
+    const token = getToken();
+    if (!token) {
+      handleError("Please login to access chat");
+      router.push("/");
+      return;
+    }
+
     setIsMounted(true);
     fetchChatrooms();
   }, []);
@@ -226,6 +270,7 @@ function ChatPageContent() {
         onToggleSidebar={toggleSidebar}
         isSidebarOpen={isSidebarOpen}
         refreshChatrooms={fetchChatrooms}
+        setCurrentChatroomId={setCurrentChatroomId}
       />
     </div>
   );

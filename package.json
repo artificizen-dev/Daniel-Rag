@@ -11,6 +11,7 @@
   "dependencies": {
     "@types/react-syntax-highlighter": "^15.5.13",
     "antd": "^5.24.8",
+    "axios": "^1.9.0",
     "boring-avatars": "^1.11.2",
     "date-fns": "^4.1.0",
     "next": "15.3.1",

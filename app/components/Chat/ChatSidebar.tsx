@@ -8,18 +8,20 @@ import {
   IoDocumentTextOutline,
 } from "react-icons/io5";
 import { GoSidebarExpand } from "react-icons/go";
-import { backendURL } from "@/app/utils/config";
+import { backendURL, getToken } from "@/app/utils/config";
 import { useChatrooms } from "@/app/providers/ChatroomContext";
 import { Chatroom, ChatSidebarProps } from "@/app/interfaces";
 
 export default function ChatSidebar({
   isOpen,
   currentChatroomId,
+  chatrooms,
   onSelectChatroom,
   onCreateNewChat,
   onToggleSidebar,
 }: ChatSidebarProps) {
-  const { chatrooms, isLoading } = useChatrooms();
+  const token = getToken();
+  const { isLoading } = useChatrooms();
   const [searchParams, setSearchParams] = useState({
     name: "",
     start_date: "",
@@ -46,7 +48,13 @@ export default function ChatSidebar({
           queryParams.append("end_date", searchParams.end_date);
 
         const response = await fetch(
-          `${backendURL}/api/search_chatrooms?${queryParams.toString()}`
+          `${backendURL}/api/search_chatrooms?${queryParams.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
         );
 
         if (!response.ok) throw new Error("Search failed");

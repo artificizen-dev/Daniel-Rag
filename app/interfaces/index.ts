@@ -5,17 +5,6 @@ export interface Chatroom {
   updated_at?: string;
 }
 
-// export interface Message {
-//   id: string;
-//   content: string;
-//   sender: "user" | "assistant";
-//   created_at: string;
-//   attachments?: {
-//     type: string;
-//     url: string;
-//   }[];
-// }
-
 export interface Message {
   id: string;
   content: string;
@@ -43,6 +32,7 @@ export interface ChatAreaProps {
   onToggleSidebar: () => void;
   refreshChatrooms: () => void;
   createNewChatroom: () => void;
+  setCurrentChatroomId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export interface Resource {
@@ -93,4 +83,32 @@ export interface Resource {
   text_content: string;
   resource_id: string;
   score: number;
+}
+
+export interface User {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+export interface AuthContextType extends AuthState {
+  login: (userData: User, token: string) => void;
+  logout: () => void;
+}
+
+export interface ChatroomContextType {
+  chatrooms: Chatroom[];
+  isLoading: boolean;
+  error: string | null;
+  fetchChatrooms: () => Promise<void>;
+  addChatroom: (chatroom: Chatroom) => Promise<void>;
+  createChatroom: (name: string) => Promise<Chatroom | null>;
+  removeChatroom: (roomId: string) => Promise<void>;
 }

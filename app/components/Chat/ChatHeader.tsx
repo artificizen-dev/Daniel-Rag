@@ -7,6 +7,8 @@ import { GoSidebarCollapse } from "react-icons/go";
 import { IoSettingsSharp } from "react-icons/io5";
 import Link from "next/link";
 import { ChatHeaderProps } from "@/app/interfaces";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/providers/AuthContext";
 
 export default function ChatHeader({
   chatroomId,
@@ -15,6 +17,8 @@ export default function ChatHeader({
 }: ChatHeaderProps) {
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -29,6 +33,16 @@ export default function ChatHeader({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const handleSignOut = () => {
+    logout();
+    router.push("/");
+  };
+
+  // If no user is available, show placeholder name and email
+  const displayName = user?.name || "User";
+  const displayEmail = user?.email || "user@example.com";
+  const isAdmin = user?.role === "admin";
 
   return (
     <header className="border-b border-gray-200 bg-white">
@@ -58,7 +72,7 @@ export default function ChatHeader({
             >
               <Avatar
                 size={30}
-                name="Margaret Brent"
+                name={displayName}
                 variant="beam"
                 colors={["#92A1C6", "#146A7C", "#F0AB3D", "#C271B4", "#C20D90"]}
               />
@@ -67,23 +81,28 @@ export default function ChatHeader({
             {isAvatarMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-20">
                 <div className="py-2 px-4 border-b border-gray-100">
-                  <p className="font-medium text-gray-800">Margaret Brent</p>
+                  <p className="font-medium text-gray-800">{displayName}</p>
                   <p className="text-sm text-gray-500 truncate">
-                    margaret@example.com
+                    {displayEmail}
                   </p>
                 </div>
                 <ul className="py-2">
+                  {isAdmin && (
+                    <li>
+                      <Link
+                        href="/dashboard"
+                        className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
+                      >
+                        <IoSettingsSharp className="mr-2 text-gray-600" />
+                        Dashboard
+                      </Link>
+                    </li>
+                  )}
                   <li>
-                    <Link
-                      href="/dashboard"
-                      className="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full text-left flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100"
                     >
-                      <IoSettingsSharp className="mr-2 text-gray-600" />
-                      Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <button className="w-full text-left flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100">
                       <svg
                         className="mr-2 w-4 h-4 text-gray-600"
                         fill="none"

@@ -1,4 +1,3 @@
-// contexts/ChatroomContext.tsx
 "use client";
 
 import React, {
@@ -8,25 +7,9 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { backendURL } from "@/app/utils/config";
-
-// Define the chatroom type
-export interface Chatroom {
-  room_id: string;
-  name: string;
-  created_at: string;
-  last_message?: string;
-}
-
-// Define the context type
-interface ChatroomContextType {
-  chatrooms: Chatroom[];
-  isLoading: boolean;
-  error: string | null;
-  fetchChatrooms: () => Promise<void>;
-  addChatroom: (chatroom: Chatroom) => void;
-  removeChatroom: (roomId: string) => void;
-}
+import { backendURL, getToken } from "@/app/utils/config";
+import { handleError, handleSuccess } from "../utils/messageUtils";
+import { Chatroom, ChatroomContextType } from "../interfaces";
 
 // Create the context
 const ChatroomContext = createContext<ChatroomContextType | undefined>(
@@ -43,14 +26,27 @@ export const ChatroomProvider: React.FC<{ children: ReactNode }> = ({
 
   // Fetch chatrooms
   const fetchChatrooms = async () => {
+    const token = getToken();
+    if (!token) {
+      setIsLoading(false);
+      setError("Authentication required");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${backendURL}/api/chatrooms`);
+      const response = await fetch(`${backendURL}/api/chatrooms`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch chatrooms");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch chatrooms");
       }
 
       const data = await response.json();
@@ -68,6 +64,7 @@ export const ChatroomProvider: React.FC<{ children: ReactNode }> = ({
         err instanceof Error ? err.message : "An unknown error occurred";
 
       setError(errorMessage);
+      handleError(`Chatroom fetch failed: ${errorMessage}`);
       setChatrooms([]);
     } finally {
       setIsLoading(false);
@@ -75,22 +72,105 @@ export const ChatroomProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   // Add a new chatroom
-  const addChatroom = (chatroom: Chatroom) => {
+  const addChatroom = async (chatroom: Chatroom) => {
     setChatrooms((prev) => {
       // Prevent duplicates
       const exists = prev.some((room) => room.room_id === chatroom.room_id);
-      return exists ? prev : [...prev, chatroom];
+      if (exists) return prev;
+
+      handleSuccess(`Joined chatroom: ${chatroom.name}`);
+      return [...prev, chatroom];
     });
   };
 
-  // Remove a chatroom
-  const removeChatroom = (roomId: string) => {
-    setChatrooms((prev) => prev.filter((room) => room.room_id !== roomId));
+  // Create a new chatroom
+  const createChatroom = async (name: string): Promise<Chatroom | null> => {
+    const token = getToken();
+    if (!token) {
+      handleError("Authentication required to create a chatroom");
+      return null;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const response = await fetch(`${backendURL}/api/chatrooms`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to create chatroom");
+      }
+
+      const newChatroom = await response.json();
+
+      setChatrooms((prev) => [...prev, newChatroom]);
+      handleSuccess(`Chatroom "${name}" created successfully`);
+
+      return newChatroom;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unknown error occurred";
+
+      handleError(`Failed to create chatroom: ${errorMessage}`);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Fetch chatrooms on initial load
+  // Remove a chatroom
+  const removeChatroom = async (roomId: string) => {
+    const token = getToken();
+    if (!token) {
+      handleError("Authentication required to remove a chatroom");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${backendURL}/api/chatrooms/${roomId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to delete chatroom");
+      }
+
+      setChatrooms((prev) => {
+        const filtered = prev.filter((room) => room.room_id !== roomId);
+        const removedRoom = prev.find((room) => room.room_id === roomId);
+        if (removedRoom) {
+          handleSuccess(`Chatroom "${removedRoom.name}" removed`);
+        }
+        return filtered;
+      });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unknown error occurred";
+
+      handleError(`Failed to remove chatroom: ${errorMessage}`);
+    }
+  };
+
+  // Fetch chatrooms on initial load, but only if token exists
   useEffect(() => {
-    fetchChatrooms();
+    const token = getToken();
+    if (token) {
+      fetchChatrooms();
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
   // Context value
@@ -100,6 +180,7 @@ export const ChatroomProvider: React.FC<{ children: ReactNode }> = ({
     error,
     fetchChatrooms,
     addChatroom,
+    createChatroom,
     removeChatroom,
   };
 

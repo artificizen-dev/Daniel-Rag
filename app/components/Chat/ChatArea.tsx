@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { backendURL } from "@/app/utils/config";
+import { backendURL, getToken } from "@/app/utils/config";
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import { ChatAreaProps, Message, Resource } from "@/app/interfaces";
 import { useChatrooms } from "@/app/providers/ChatroomContext";
+import { v4 as uuidv4 } from "uuid";
+import { useRouter } from "next/navigation";
 
-// Define the conversation item from API
 interface ConversationItem {
   conversation_id: string;
   content: string;
@@ -18,11 +19,14 @@ interface ConversationItem {
 }
 
 export default function ChatArea({
-  createNewChatroom,
+  // createNewChatroom,
   chatroomId,
   isSidebarOpen,
   onToggleSidebar,
+  setCurrentChatroomId,
 }: ChatAreaProps) {
+  const router = useRouter();
+  const token = getToken();
   const { fetchChatrooms, chatrooms } = useChatrooms();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +42,13 @@ export default function ChatArea({
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${backendURL}/api/chatrooms/${chatroomId}/conversations?page=1&page_size=15`
+        `${backendURL}/api/chatrooms/${chatroomId}/conversations?page=1&page_size=15`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (response.status === 404) {
@@ -97,7 +107,13 @@ export default function ChatArea({
     try {
       setIsLoadingResources(true);
       const response = await fetch(
-        `${backendURL}/api/get_reference_chunks?chatroom_id=${chatroomId}`
+        `${backendURL}/api/get_reference_chunks?chatroom_id=${chatroomId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
       if (!response.ok) throw new Error("Failed to fetch resources");
 
@@ -121,14 +137,42 @@ export default function ChatArea({
     attachments: File[] = []
   ) => {
     if (!content.trim() && attachments.length === 0) return;
+    const formData = new FormData();
 
     setIsSending(true);
 
+    // if (!chatroomId) {
+    //   // createNewChatroom();
+    //   const newChatroomId = uuidv4();
+    //   setCurrentChatroomId(newChatroomId);
+
+    //   router.push(`/chat?chatroom_id=${newChatroomId}`, { scroll: false });
+
+    //   setCurrentChatroomId(null);
+
+    //   fetchChatrooms();
+
+    //   setTimeout(() => {
+    //     setCurrentChatroomId(newChatroomId);
+    //   }, 0);
+    // }
+
     if (!chatroomId) {
-      createNewChatroom();
+      const newChatroomId = uuidv4();
+
+      await new Promise<void>((resolve) => {
+        setCurrentChatroomId(newChatroomId);
+        router.push(`/chat?chatroom_id=${newChatroomId}`, { scroll: false });
+
+        formData.append("chatroom_id", newChatroomId);
+
+        setTimeout(() => {
+          setCurrentChatroomId(newChatroomId);
+          resolve();
+        }, 100);
+      });
     }
 
-    const formData = new FormData();
     formData.append("text_query", content);
 
     if (attachments.length > 0) {
@@ -167,9 +211,13 @@ export default function ChatArea({
 
       setMessages((prev) => [...prev, streamingMessage]);
 
-      // Fetch streaming response
+      // Fetch streaming response with token in headers
       const response = await fetch(`${backendURL}/api/generate_response`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Don't set Content-Type for FormData
+        },
         body: formData,
       });
 

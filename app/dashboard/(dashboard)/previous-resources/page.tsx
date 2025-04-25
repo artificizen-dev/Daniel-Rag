@@ -20,10 +20,11 @@ import {
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { UploadOutlined } from "@ant-design/icons";
-import { backendURL } from "@/app/utils/config";
+import { backendURL, getToken } from "@/app/utils/config";
 import { Resource, ResourceResponse } from "@/app/interfaces";
 
 export default function PreviousResourcesPage() {
+  const token = getToken();
   const [messageApi, contextHolder] = message.useMessage();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,13 @@ export default function PreviousResourcesPage() {
     try {
       setLoading(true);
       const response = await fetch(
-        `${backendURL}/api/list_resources?page=${page}&page_size=${pageSize}`
+        `${backendURL}/api/list_resources?page=${page}&page_size=${pageSize}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (!response.ok) {
@@ -77,7 +84,9 @@ export default function PreviousResourcesPage() {
 
       const response = await fetch(`${backendURL}/api/update_resources`, {
         method: "POST",
-        // Remove the Content-Type header - FormData will set it automatically
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
@@ -111,53 +120,6 @@ export default function PreviousResourcesPage() {
     setEditModalVisible(true);
   };
 
-  // const handleEdit = async (values: {
-  //   upload: { fileList: { originFileObj: File }[] };
-  // }) => {
-  //   if (!editingResource) return;
-
-  //   try {
-  //     setIsUpdating(true);
-  //     const fileObj = values.upload?.fileList?.[0]?.originFileObj;
-
-  //     if (!fileObj) {
-  //       message.error("Please select a file to upload");
-  //       return;
-  //     }
-
-  //     // Use FormData for file upload
-  //     const formData = new FormData();
-  //     formData.append("action", "update");
-  //     formData.append("file_id", editingResource.file_id);
-  //     formData.append("files", fileObj);
-
-  //     const response = await fetch(`${backendURL}/api/update_resources`, {
-  //       method: "POST",
-  //       body: formData,
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error("Failed to update resource");
-  //     }
-
-  //     messageApi.open({
-  //       type: "success",
-  //       content: "resource updated successfully",
-  //       duration: 10,
-  //     });
-  //     setEditModalVisible(false);
-
-  //     fetchResources(pagination.current, pagination.pageSize);
-  //   } catch (err) {
-  //     console.error("Update error:", err);
-  //     messageApi.open({
-  //       type: "error",
-  //       content: "Resource Update error",
-  //       duration: 10,
-  //     });
-  //   }
-  // };
-
   const handleEdit = async (values: {
     upload: { fileList: { originFileObj: File }[] };
   }) => {
@@ -181,6 +143,9 @@ export default function PreviousResourcesPage() {
 
       const response = await fetch(`${backendURL}/api/update_resources`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 

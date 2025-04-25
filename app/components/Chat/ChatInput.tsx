@@ -1,13 +1,14 @@
-// // components/chat/ChatInput.tsx
 // "use client";
 
 // import { ChatInputProps } from "@/app/interfaces";
+// import Image from "next/image";
 // import { useState, useRef, useEffect } from "react";
 // import { IoArrowUp, IoAdd, IoClose } from "react-icons/io5";
 
 // export default function ChatInput({
 //   onSendMessage,
 //   isSending,
+//   hasMessages = false,
 // }: ChatInputProps) {
 //   const [message, setMessage] = useState("");
 //   const [attachments, setAttachments] = useState<File[]>([]);
@@ -74,15 +75,21 @@
 //   const isInputEmpty = !message.trim() && attachments.length === 0;
 
 //   return (
-//     <div className="bg-white p-4 absolute bottom-0 md:min-w-[48rem]">
+//     <div
+//       className={`bg-white p-4 w-full ${
+//         hasMessages ? "absolute bottom-0" : "relative mt-4"
+//       } md:min-w-[48rem]`}
+//     >
 //       {attachmentPreviews.length > 0 && (
 //         <div className="mb-3 flex gap-2 overflow-x-auto pb-2">
 //           {attachmentPreviews.map((item, index) => (
 //             <div key={index} className="relative">
 //               {item.file.type.startsWith("image/") ? (
 //                 <div className="relative h-20 w-20 overflow-hidden rounded-md border border-gray-200">
-//                   <img
+//                   <Image
 //                     src={item.preview}
+//                     width={50}
+//                     height={50}
 //                     alt="attachment"
 //                     className="h-full w-full object-cover"
 //                   />
@@ -155,7 +162,6 @@
 //   );
 // }
 
-// components/chat/ChatInput.tsx
 "use client";
 
 import { ChatInputProps } from "@/app/interfaces";
@@ -173,8 +179,10 @@ export default function ChatInput({
   const [attachmentPreviews, setAttachmentPreviews] = useState<
     { file: File; preview: string }[]
   >([]);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dropAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -198,6 +206,67 @@ export default function ChatInput({
       newPreviews.forEach((item) => URL.revokeObjectURL(item.preview));
     };
   }, [attachments]);
+
+  // Set up drag and drop event handlers
+  useEffect(() => {
+    const dropArea = dropAreaRef.current;
+    if (!dropArea) return;
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+    };
+
+    const handleDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (
+        e.currentTarget === dropArea &&
+        !dropArea.contains(e.relatedTarget as Node)
+      ) {
+        setIsDragging(false);
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        const droppedFiles = Array.from(e.dataTransfer.files);
+
+        // Filter for images only
+        const imageFiles = droppedFiles.filter((file) =>
+          file.type.startsWith("image/")
+        );
+
+        if (imageFiles.length > 0) {
+          setAttachments((prev) => [...prev, ...imageFiles]);
+        }
+      }
+    };
+
+    dropArea.addEventListener("dragover", handleDragOver);
+    dropArea.addEventListener("dragenter", handleDragEnter);
+    dropArea.addEventListener("dragleave", handleDragLeave);
+    dropArea.addEventListener("drop", handleDrop);
+
+    return () => {
+      dropArea.removeEventListener("dragover", handleDragOver);
+      dropArea.removeEventListener("dragenter", handleDragEnter);
+      dropArea.removeEventListener("dragleave", handleDragLeave);
+      dropArea.removeEventListener("drop", handleDrop);
+    };
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -237,7 +306,15 @@ export default function ChatInput({
       className={`bg-white p-4 w-full ${
         hasMessages ? "absolute bottom-0" : "relative mt-4"
       } md:min-w-[48rem]`}
+      ref={dropAreaRef}
     >
+      {/* Drag overlay indicator */}
+      {isDragging && (
+        <div className="absolute inset-0 bg-blue-50 bg-opacity-90 border-2 border-dashed border-blue-300 rounded-md flex items-center justify-center z-10">
+          <div className="text-blue-600 font-medium">Drop images here</div>
+        </div>
+      )}
+
       {attachmentPreviews.length > 0 && (
         <div className="mb-3 flex gap-2 overflow-x-auto pb-2">
           {attachmentPreviews.map((item, index) => (
@@ -246,6 +323,8 @@ export default function ChatInput({
                 <div className="relative h-20 w-20 overflow-hidden rounded-md border border-gray-200">
                   <Image
                     src={item.preview}
+                    width={50}
+                    height={50}
                     alt="attachment"
                     className="h-full w-full object-cover"
                   />
@@ -274,7 +353,7 @@ export default function ChatInput({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder="Type a message or drop an image..."
             className="mr-2 flex-1 resize-none bg-transparent pt-1 text-gray-800 focus:outline-none"
             style={{ minHeight: "24px", maxHeight: "120px" }}
             rows={1}

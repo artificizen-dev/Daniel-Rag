@@ -9,7 +9,7 @@ import {
 } from "react-icons/io5";
 import Image from "next/image";
 import { message } from "antd";
-import { backendURL } from "@/app/utils/config";
+import { backendURL, getToken } from "@/app/utils/config";
 
 // Define file type interface
 interface UploadedFile {
@@ -18,6 +18,7 @@ interface UploadedFile {
 }
 
 export default function UploadResourcesPage() {
+  const token = getToken();
   const [messageApi, contextHolder] = message.useMessage();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -72,6 +73,9 @@ export default function UploadResourcesPage() {
 
       const response = await fetch(`${backendURL}/api/update_resources`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 

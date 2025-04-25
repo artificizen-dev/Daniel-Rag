@@ -1,36 +1,129 @@
-// app/page.tsx
+// components/Login/Login.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import axios from "axios";
 import { FiMail, FiLock, FiArrowRight, FiEye, FiEyeOff } from "react-icons/fi";
 import { BsChatSquareDotsFill } from "react-icons/bs";
+import { backendURL } from "@/app/utils/config";
+import { handleError, handleSuccess } from "@/app/utils/messageUtils";
+import { useAuth } from "@/app/providers/AuthContext";
+
+interface ValidationErrors {
+  email?: string;
+  password?: string;
+  general?: string;
+}
+
+interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
 const Login = () => {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { login } = useAuth();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Handle input changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData({ ...formData, [id]: value });
+
+    // Mark field as touched
+    setTouched({ ...touched, [id]: true });
+  };
+
+  // Handle input blur for validation
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { id } = e.target;
+    setTouched({ ...touched, [id]: true });
+  };
+
+  // Validate the form
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    // Email validation
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
-    setError("");
+    setErrors({});
 
-    // Simulate authentication
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await axios.post<LoginResponse>(
+        `${backendURL}/api/auth/login`,
+        formData
+      );
 
-      // Basic validation (would be replaced with actual auth logic)
-      if (email && password) {
+      const { access_token, user_id, name, email, role } = response.data;
+
+      // Store user in context and localStorage
+      login({ user_id, name, email, role }, access_token);
+
+      handleSuccess("Login successful!");
+
+      if (role === "admin") {
         router.push("/dashboard");
       } else {
-        setError("Invalid email or password");
+        router.push("/chat");
       }
-    }, 1000);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        // Handle API errors
+        const errorMessage =
+          error.response?.data?.message || "Invalid email or password";
+        setErrors({ general: errorMessage });
+        handleError(errorMessage);
+      } else {
+        // Handle other errors
+        setErrors({
+          general: "An unexpected error occurred. Please try again.",
+        });
+        handleError("Login failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper function to determine if a field has an error
+  const hasError = (field: keyof ValidationErrors): boolean => {
+    return touched[field] === true && Boolean(errors[field]);
   };
 
   return (
@@ -49,13 +142,13 @@ const Login = () => {
 
           {/* Form section */}
           <div className="p-6 sm:p-8">
-            {error && (
+            {errors.general && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
-                {error}
+                {errors.general}
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="space-y-5">
                 {/* Email field */}
                 <div className="space-y-2">
@@ -67,18 +160,30 @@ const Login = () => {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <FiMail className="text-slate-400" />
+                      <FiMail
+                        className={`${
+                          hasError("email") ? "text-red-500" : "text-slate-400"
+                        }`}
+                      />
                     </div>
                     <input
                       id="email"
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-2 pl-10 rounded-md border border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none text-slate-900"
+                      value={formData.email}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className={`w-full px-4 py-2 pl-10 rounded-md border ${
+                        hasError("email")
+                          ? "border-red-500 focus:ring-red-500/50 focus:border-red-500"
+                          : "border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500"
+                      } outline-none text-slate-900`}
                       placeholder="you@example.com"
                       required
                     />
                   </div>
+                  {hasError("email") && (
+                    <p className="text-xs text-red-600 mt-1">{errors.email}</p>
+                  )}
                 </div>
 
                 {/* Password field */}
@@ -90,23 +195,28 @@ const Login = () => {
                     >
                       Password
                     </label>
-                    <a
-                      href="#"
-                      className="text-sm text-primary-500 hover:text-primary-600"
-                    >
-                      Forgot password?
-                    </a>
                   </div>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <FiLock className="text-slate-400" />
+                      <FiLock
+                        className={`${
+                          hasError("password")
+                            ? "text-red-500"
+                            : "text-slate-400"
+                        }`}
+                      />
                     </div>
                     <input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-2 pl-10 pr-10 rounded-md border border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none text-slate-900"
+                      value={formData.password}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className={`w-full px-4 py-2 pl-10 pr-10 rounded-md border ${
+                        hasError("password")
+                          ? "border-red-500 focus:ring-red-500/50 focus:border-red-500"
+                          : "border-slate-300 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500"
+                      } outline-none text-slate-900`}
                       placeholder="••••••••"
                       required
                     />
@@ -118,6 +228,11 @@ const Login = () => {
                       {showPassword ? <FiEyeOff /> : <FiEye />}
                     </button>
                   </div>
+                  {hasError("password") && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.password}
+                    </p>
+                  )}
                 </div>
 
                 {/* Submit button */}
