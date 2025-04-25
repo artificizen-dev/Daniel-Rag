@@ -246,6 +246,8 @@ export default function ChatArea({
         );
       }
 
+      fetchResources();
+
       // Check if the current chatroom exists in the context
       const isNewChatroom = !chatrooms.some(
         (room) => room.room_id === chatroomId
