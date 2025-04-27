@@ -13,6 +13,7 @@ import { backendURL, getToken } from "@/app/utils/config";
 import { handleApiError } from "@/app/utils/handleApiError";
 import { useAuth } from "@/app/providers/AuthContext";
 import { useRouter } from "next/navigation";
+import { User } from "@/app/interfaces";
 
 // Define file type interface
 interface UploadedFile {
@@ -23,7 +24,7 @@ interface UploadedFile {
 export default function UploadResourcesPage() {
   const router = useRouter();
   const token = getToken();
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
   const [messageApi, contextHolder] = message.useMessage();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -127,10 +128,21 @@ export default function UploadResourcesPage() {
     fileInputRef.current?.click();
   };
 
-  console.log(user);
-
   useEffect(() => {
-    if (user?.role !== "admin") {
+    const user = localStorage.getItem("user");
+    let userObject: User | null = null;
+
+    if (typeof user === "string") {
+      try {
+        userObject = JSON.parse(user);
+      } catch (e) {
+        console.error("Failed to parse user data:", e);
+      }
+    } else if (user && typeof user === "object") {
+      userObject = user as User;
+    }
+
+    if (!userObject || userObject.role !== "admin") {
       messageApi.open({
         type: "error",
         content: "You are not authorized to access this page.",
