@@ -10,6 +10,8 @@ import React, {
 import { backendURL, getToken } from "@/app/utils/config";
 import { handleError, handleSuccess } from "../utils/messageUtils";
 import { Chatroom, ChatroomContextType } from "../interfaces";
+import { handleApiError } from "../utils/handleApiError";
+import { useAuth } from "./AuthContext";
 
 // Create the context
 const ChatroomContext = createContext<ChatroomContextType | undefined>(
@@ -23,6 +25,7 @@ export const ChatroomProvider: React.FC<{ children: ReactNode }> = ({
   const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { logout } = useAuth();
 
   // Fetch chatrooms
   const fetchChatrooms = async () => {
@@ -45,8 +48,19 @@ export const ChatroomProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to fetch chatrooms");
+        console.log("auth error");
+        // Create error object with status
+        const authError = {
+          status: 401,
+          message: "Unauthorized",
+        };
+
+        // Hand off to error handler with the status information
+        handleApiError(authError, logout);
+
+        // Exit function early
+        setIsLoading(false);
+        return;
       }
 
       const data = await response.json();
@@ -64,7 +78,6 @@ export const ChatroomProvider: React.FC<{ children: ReactNode }> = ({
         err instanceof Error ? err.message : "An unknown error occurred";
 
       setError(errorMessage);
-      handleError(`Chatroom fetch failed: ${errorMessage}`);
       setChatrooms([]);
     } finally {
       setIsLoading(false);

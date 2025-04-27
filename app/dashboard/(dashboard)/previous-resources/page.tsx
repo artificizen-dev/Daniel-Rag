@@ -22,9 +22,12 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { UploadOutlined } from "@ant-design/icons";
 import { backendURL, getToken } from "@/app/utils/config";
 import { Resource, ResourceResponse } from "@/app/interfaces";
+import { handleApiError } from "@/app/utils/handleApiError";
+import { useAuth } from "@/app/providers/AuthContext";
 
 export default function PreviousResourcesPage() {
   const token = getToken();
+  const { logout } = useAuth();
   const [messageApi, contextHolder] = message.useMessage();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,18 @@ export default function PreviousResourcesPage() {
 
       if (!response.ok) {
         throw new Error("Failed to fetch resources");
+      }
+      if (response.status === 401) {
+        // Create error object with status
+        const authError = {
+          status: 401,
+          message: "Unauthorized",
+        };
+
+        handleApiError(authError, logout);
+
+        setLoading(false);
+        return;
       }
 
       const data: ResourceResponse = await response.json();
@@ -231,7 +246,7 @@ export default function PreviousResourcesPage() {
             status === "processed" ? "text-green-600" : "text-yellow-600"
           } font-medium`}
         >
-          {status === "processed" ? "Processed" : "Processing"}
+          {status === "processed" ? "Processed" : "Failed"}
         </span>
       ),
     },

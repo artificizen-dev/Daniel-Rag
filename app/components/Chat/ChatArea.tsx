@@ -9,6 +9,8 @@ import { ChatAreaProps, Message, Resource } from "@/app/interfaces";
 import { useChatrooms } from "@/app/providers/ChatroomContext";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
+import { handleApiError } from "@/app/utils/handleApiError";
+import { useAuth } from "@/app/providers/AuthContext";
 
 interface ConversationItem {
   conversation_id: string;
@@ -27,6 +29,7 @@ export default function ChatArea({
 }: ChatAreaProps) {
   const router = useRouter();
   const token = getToken();
+  const { logout } = useAuth();
   const { fetchChatrooms, chatrooms } = useChatrooms();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,6 +60,18 @@ export default function ChatArea({
       }
 
       if (!response.ok) throw new Error("Failed to fetch messages");
+
+      if (response.status === 401) {
+        const authError = {
+          status: 401,
+          message: "Unauthorized",
+        };
+
+        handleApiError(authError, logout);
+
+        setIsLoading(false);
+        return;
+      }
 
       const data = await response.json();
 
@@ -116,6 +131,20 @@ export default function ChatArea({
         }
       );
       if (!response.ok) throw new Error("Failed to fetch resources");
+      if (response.status === 401) {
+        // Create error object with status
+        const authError = {
+          status: 401,
+          message: "Unauthorized",
+        };
+
+        // Hand off to error handler with the status information
+        handleApiError(authError, logout);
+
+        // Exit function early
+        setIsLoadingResources(false);
+        return;
+      }
 
       const data = await response.json();
 
@@ -184,7 +213,6 @@ export default function ChatArea({
     }
 
     try {
-      // Add user message to UI
       const tempUserMessage: Message = {
         id: `temp-${Date.now()}`,
         content,
@@ -197,8 +225,6 @@ export default function ChatArea({
       };
 
       setMessages((prev) => [...prev, tempUserMessage]);
-
-      // Create empty assistant message for streaming with "Generating response..." text
       const streamingMessageId = `assistant-${Date.now()}`;
       assistantMessageId.current = streamingMessageId;
 
@@ -222,6 +248,21 @@ export default function ChatArea({
       });
 
       if (!response.ok) throw new Error("Failed to send message");
+
+      if (response.status === 401) {
+        // Create error object with status
+        const authError = {
+          status: 401,
+          message: "Unauthorized",
+        };
+
+        // Hand off to error handler with the status information
+        handleApiError(authError, logout);
+
+        // Exit function early
+        setIsSending(false);
+        return;
+      }
 
       // Handle streaming response
       const reader = response.body?.getReader();

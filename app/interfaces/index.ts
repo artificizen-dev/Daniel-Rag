@@ -35,12 +35,12 @@ export interface ChatAreaProps {
   setCurrentChatroomId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
-export interface Resource {
-  id: string;
-  title: string;
-  url: string;
-  type: string;
-}
+// export interface Resource {
+//   id: string;
+//   title: string;
+//   url: string;
+//   type: string;
+// }
 
 export interface ChatHeaderProps {
   chatroomId: string | null;

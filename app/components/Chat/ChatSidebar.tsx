@@ -15,13 +15,13 @@ import { Chatroom, ChatSidebarProps } from "@/app/interfaces";
 export default function ChatSidebar({
   isOpen,
   currentChatroomId,
-  chatrooms,
+  // chatrooms,
   onSelectChatroom,
   onCreateNewChat,
   onToggleSidebar,
 }: ChatSidebarProps) {
   const token = getToken();
-  const { isLoading } = useChatrooms();
+  const { isLoading, chatrooms, fetchChatrooms } = useChatrooms();
   const [searchParams, setSearchParams] = useState({
     name: "",
     start_date: "",
@@ -73,6 +73,7 @@ export default function ChatSidebar({
   // Set isMounted to true after component mounts to prevent hydration issues
   useEffect(() => {
     setIsMounted(true);
+    fetchChatrooms();
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);

@@ -10,6 +10,8 @@ import {
 import Image from "next/image";
 import { message } from "antd";
 import { backendURL, getToken } from "@/app/utils/config";
+import { handleApiError } from "@/app/utils/handleApiError";
+import { useAuth } from "@/app/providers/AuthContext";
 
 // Define file type interface
 interface UploadedFile {
@@ -19,6 +21,7 @@ interface UploadedFile {
 
 export default function UploadResourcesPage() {
   const token = getToken();
+  const { logout } = useAuth();
   const [messageApi, contextHolder] = message.useMessage();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -83,6 +86,19 @@ export default function UploadResourcesPage() {
 
       if (!response.ok) {
         throw new Error(result.message || "Upload failed");
+      }
+
+      if (response.status === 401) {
+        // Create error object with status
+        const authError = {
+          status: 401,
+          message: "Unauthorized",
+        };
+
+        handleApiError(authError, logout);
+
+        setUploading(false);
+        return;
       }
 
       messageApi.open({
