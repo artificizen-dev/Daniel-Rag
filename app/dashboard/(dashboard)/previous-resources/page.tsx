@@ -24,10 +24,12 @@ import { backendURL, getToken } from "@/app/utils/config";
 import { Resource, ResourceResponse } from "@/app/interfaces";
 import { handleApiError } from "@/app/utils/handleApiError";
 import { useAuth } from "@/app/providers/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function PreviousResourcesPage() {
   const token = getToken();
-  const { logout } = useAuth();
+  const router = useRouter();
+  const { logout, user } = useAuth();
   const [messageApi, contextHolder] = message.useMessage();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,17 @@ export default function PreviousResourcesPage() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (user?.role !== "admin") {
+      messageApi.open({
+        type: "error",
+        content: "You are not authorized to access this page.",
+        duration: 10,
+      });
+      router.push("/");
+    }
+  }, []);
 
   // Fetch resources from API
   const fetchResources = async (page = 1, pageSize = 10) => {
@@ -64,7 +77,7 @@ export default function PreviousResourcesPage() {
           status: 401,
           message: "Unauthorized",
         };
-
+        console.log("response");
         handleApiError(authError, logout);
 
         setLoading(false);

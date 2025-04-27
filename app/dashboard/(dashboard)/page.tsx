@@ -1,7 +1,7 @@
 // app/dashboard/upload/page.tsx
 "use client";
 
-import { useState, useRef, ChangeEvent, FormEvent } from "react";
+import { useState, useRef, ChangeEvent, FormEvent, useEffect } from "react";
 import {
   IoCloudUploadOutline,
   IoDocumentOutline,
@@ -12,6 +12,7 @@ import { message } from "antd";
 import { backendURL, getToken } from "@/app/utils/config";
 import { handleApiError } from "@/app/utils/handleApiError";
 import { useAuth } from "@/app/providers/AuthContext";
+import { useRouter } from "next/navigation";
 
 // Define file type interface
 interface UploadedFile {
@@ -20,8 +21,9 @@ interface UploadedFile {
 }
 
 export default function UploadResourcesPage() {
+  const router = useRouter();
   const token = getToken();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [messageApi, contextHolder] = message.useMessage();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -124,6 +126,19 @@ export default function UploadResourcesPage() {
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
+
+  console.log(user);
+
+  useEffect(() => {
+    if (user?.role !== "admin") {
+      messageApi.open({
+        type: "error",
+        content: "You are not authorized to access this page.",
+        duration: 10,
+      });
+      router.push("/");
+    }
+  }, []);
 
   return (
     <>
