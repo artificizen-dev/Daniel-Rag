@@ -32,6 +32,11 @@ export default function DashboardSidebar({
       path: "/dashboard/previous-resources",
       icon: <IoTimeOutline size={20} />,
     },
+    {
+      name: "Previous Chats",
+      path: "/dashboard/previous-chats",
+      icon: <IoTimeOutline size={20} />,
+    },
   ];
 
   return (

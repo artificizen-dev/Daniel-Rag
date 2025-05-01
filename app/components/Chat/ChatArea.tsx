@@ -202,7 +202,7 @@ export default function ChatArea({
       });
     }
 
-    formData.append("text_query", content);
+    formData.append("user_text_query", content);
 
     if (attachments.length > 0) {
       formData.append("image_query", attachments[0]);
