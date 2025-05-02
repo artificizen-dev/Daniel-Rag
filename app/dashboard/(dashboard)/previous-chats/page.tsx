@@ -170,23 +170,19 @@ const ChatHistoryDashboard: React.FC = () => {
     [pageSize, token]
   );
 
-  // Initial fetch on component mount
   useEffect(() => {
     fetchChatHistories(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch data when debounced filters change
   useEffect(() => {
     if (shouldFetchRef.current) {
       fetchChatHistories(debouncedFilters);
     } else {
-      // Skip the first render effect, but enable for subsequent changes
       shouldFetchRef.current = true;
     }
   }, [debouncedFilters, fetchChatHistories]);
 
-  // Update individual filter values
   const updateFilter = (key: keyof FilterState, value: unknown) => {
     setFilters((prev) => ({
       ...prev,
@@ -200,6 +196,8 @@ const ChatHistoryDashboard: React.FC = () => {
   };
 
   const handleReset = () => {
+    shouldFetchRef.current = false;
+
     const resetFilters = {
       searchName: "",
       searchText: "",
@@ -207,11 +205,13 @@ const ChatHistoryDashboard: React.FC = () => {
       currentPage: 1,
     };
 
-    // Set the filters immediately
     setFilters(resetFilters);
 
-    // Perform an immediate fetch with reset values without waiting for debounce
     fetchChatHistories(resetFilters);
+
+    setTimeout(() => {
+      shouldFetchRef.current = true;
+    }, 2100);
   };
 
   const rowSelection: TableRowSelection<Chatroom> = {
