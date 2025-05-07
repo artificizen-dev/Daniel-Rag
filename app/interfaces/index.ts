@@ -10,8 +10,9 @@ export interface Message {
   content: string;
   sender: "user" | "assistant";
   created_at: string;
-  attachments?: Array<{ type: string; url: string }>;
+  // attachments?: Array<{ type: string; url: string }>;
   references?: Resource[];
+  attachments?: { url: string; type: string }[];
 }
 
 export interface MessageListProps {

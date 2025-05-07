@@ -105,11 +105,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
   );
 
   useEffect(() => {
-    // Reset to first page when modal is opened
-    if (isVisible) {
-      setCurrentPage(1);
-    }
-
     // If specific conversations are provided, use them directly
     if (isVisible && specificConversations) {
       setConversations(specificConversations);

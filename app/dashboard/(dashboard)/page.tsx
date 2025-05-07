@@ -54,68 +54,54 @@ export default function UploadResourcesPage() {
     );
   };
 
-  // Handle file upload
   const handleUpload = async (event: FormEvent) => {
     event.preventDefault();
-
-    if (files.length === 0) {
+    if (!files.length) {
       message.error("Please select at least one file to upload.");
       return;
     }
 
     setUploading(true);
-
     try {
-      // Create FormData for file upload
       const formData = new FormData();
-
-      // Add action
       formData.append("action", "upload");
-
-      // Add files
-      files.forEach(({ file }) => {
-        formData.append("files", file);
-      });
+      files.forEach(({ file }) => formData.append("files", file));
 
       const response = await fetch(`${backendURL}/api/update_resources`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
+      // Parse JSON exactly once
       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.message || "Upload failed");
-      }
-
+      // Handle auth error first
       if (response.status === 401) {
-        // Create error object with status
-        const authError = {
-          status: 401,
-          message: "Unauthorized",
-        };
-
-        handleApiError(authError, logout);
-
-        setUploading(false);
+        handleApiError({ status: 401, message: "Unauthorized" }, logout);
         return;
       }
 
+      // Handle other errors
+      if (!response.ok) {
+        const errMsg = result.detail ?? result.message ?? "Upload failed";
+        messageApi.open({ type: "error", content: errMsg, duration: 10 });
+        return;
+      }
+
+      // Success
       messageApi.open({
         type: "success",
         content: "File Uploaded Successfully",
         duration: 10,
       });
-      // Reset files after successful upload
       setFiles([]);
-    } catch (error) {
-      console.error("Upload error:", error);
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Network error. Please try again.";
       messageApi.open({
         type: "error",
-        content: "Failed to upload files. Please try again.",
+        content: errorMsg,
         duration: 10,
       });
     } finally {

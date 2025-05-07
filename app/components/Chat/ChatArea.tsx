@@ -11,12 +11,15 @@ import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { handleApiError } from "@/app/utils/handleApiError";
 import { useAuth } from "@/app/providers/AuthContext";
+import ChatResources from "./ChatResources";
+import { HiOutlineDocument } from "react-icons/hi";
 
 interface ConversationItem {
   conversation_id: string;
   content: string;
   role: string;
   created_at: string;
+  image?: string | null;
   references?: Resource[];
 }
 
@@ -36,8 +39,11 @@ export default function ChatArea({
   const [isSending, setIsSending] = useState(false);
   const [isLoadingResources, setIsLoadingResources] = useState(false);
   const [resources, setResources] = useState<Resource[]>([]);
+  const [isResourcesOpen, setIsResourcesOpen] = useState(false);
+  const [selectedResources, setSelectedResources] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const assistantMessageId = useRef<string>("");
+  const toggleResources = () => setIsResourcesOpen((prev) => !prev);
 
   const fetchMessages = async () => {
     if (!chatroomId) return;
@@ -62,13 +68,7 @@ export default function ChatArea({
       if (!response.ok) throw new Error("Failed to fetch messages");
 
       if (response.status === 401) {
-        const authError = {
-          status: 401,
-          message: "Unauthorized",
-        };
-
-        handleApiError(authError, logout);
-
+        handleApiError({ status: 401, message: "Unauthorized" }, logout);
         setIsLoading(false);
         return;
       }
@@ -76,14 +76,28 @@ export default function ChatArea({
       const data = await response.json();
 
       if (data.conversations && Array.isArray(data.conversations)) {
-        const formattedMessages = data.conversations.map(
-          (conv: ConversationItem) => ({
-            id: conv.conversation_id,
-            content: conv.content,
-            sender: conv.role === "user" ? "user" : "assistant",
-            created_at: conv.created_at,
-            references: conv.references || [],
-          })
+        const formattedMessages: Message[] = data.conversations.map(
+          (conv: ConversationItem) => {
+            const attachments = conv.image
+              ? [
+                  {
+                    url: conv.image.startsWith("data:")
+                      ? conv.image
+                      : `data:image/jpeg;base64,${conv.image}`,
+                    type: "image/jpeg",
+                  },
+                ]
+              : [];
+
+            return {
+              id: conv.conversation_id,
+              content: conv.content,
+              sender: conv.role === "user" ? "user" : "assistant",
+              created_at: conv.created_at,
+              references: conv.references || [],
+              attachments,
+            };
+          }
         );
         setMessages(formattedMessages);
       } else if (Array.isArray(data)) {
@@ -132,16 +146,13 @@ export default function ChatArea({
       );
       if (!response.ok) throw new Error("Failed to fetch resources");
       if (response.status === 401) {
-        // Create error object with status
         const authError = {
           status: 401,
           message: "Unauthorized",
         };
 
-        // Hand off to error handler with the status information
         handleApiError(authError, logout);
 
-        // Exit function early
         setIsLoadingResources(false);
         return;
       }
@@ -170,22 +181,6 @@ export default function ChatArea({
 
     setIsSending(true);
 
-    // if (!chatroomId) {
-    //   // createNewChatroom();
-    //   const newChatroomId = uuidv4();
-    //   setCurrentChatroomId(newChatroomId);
-
-    //   router.push(`/chat?chatroom_id=${newChatroomId}`, { scroll: false });
-
-    //   setCurrentChatroomId(null);
-
-    //   fetchChatrooms();
-
-    //   setTimeout(() => {
-    //     setCurrentChatroomId(newChatroomId);
-    //   }, 0);
-    // }
-
     if (!chatroomId) {
       const newChatroomId = uuidv4();
 
@@ -210,6 +205,12 @@ export default function ChatArea({
 
     if (chatroomId) {
       formData.append("chatroom_id", chatroomId);
+    }
+
+    if (selectedResources.length > 0) {
+      selectedResources.forEach((fileName) => {
+        formData.append("filenames", fileName);
+      });
     }
 
     try {
@@ -237,12 +238,10 @@ export default function ChatArea({
 
       setMessages((prev) => [...prev, streamingMessage]);
 
-      // Fetch streaming response with token in headers
       const response = await fetch(`${backendURL}/api/generate_response`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          // Don't set Content-Type for FormData
         },
         body: formData,
       });
@@ -250,21 +249,17 @@ export default function ChatArea({
       if (!response.ok) throw new Error("Failed to send message");
 
       if (response.status === 401) {
-        // Create error object with status
         const authError = {
           status: 401,
           message: "Unauthorized",
         };
 
-        // Hand off to error handler with the status information
         handleApiError(authError, logout);
 
-        // Exit function early
         setIsSending(false);
         return;
       }
 
-      // Handle streaming response
       const reader = response.body?.getReader();
       if (!reader) throw new Error("Response body is not readable");
 
@@ -289,18 +284,15 @@ export default function ChatArea({
 
       fetchResources();
 
-      // Check if the current chatroom exists in the context
       const isNewChatroom = !chatrooms.some(
         (room) => room.room_id === chatroomId
       );
 
       if (isNewChatroom) {
-        // Only fetch chatrooms if the chatroom is not in the current list
         fetchChatrooms();
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      // If error, show error message instead of removing the assistant message
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId.current
@@ -323,6 +315,16 @@ export default function ChatArea({
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={onToggleSidebar}
       />
+
+      <div className="absolute top-15 right-0 z-10 p-4">
+        <button
+          onClick={toggleResources}
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-2xl shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
+        >
+          <HiOutlineDocument className="w-5 h-5" />
+          <span>Resources</span>
+        </button>
+      </div>
 
       <div className="md:max-w-[48rem] md:min-w-[48rem] mx-auto w-full flex-1 flex flex-col relative overflow-hidden">
         {messages.length === 0 ? (
@@ -352,6 +354,28 @@ export default function ChatArea({
           isSending={isSending}
           hasMessages={messages.length > 0}
         />
+        {isResourcesOpen && (
+          <aside
+            className={`fixed top-0 z-30 right-0 h-full w-80 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+             ${isResourcesOpen ? "translate-x-0" : "translate-x-full"}`}
+          >
+            <div className="flex items-center justify-between px-4 py-2 border-b">
+              <h3 className="text-lg font-medium">Resources</h3>
+              <button
+                onClick={toggleResources}
+                className="flex items-center justify-center px-4 py-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 transition-all duration-200"
+              >
+                Done
+              </button>
+            </div>
+            <div>
+              <ChatResources
+                selectedResources={selectedResources}
+                onSelectionChange={setSelectedResources}
+              />
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );
