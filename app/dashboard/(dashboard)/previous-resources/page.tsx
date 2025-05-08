@@ -276,10 +276,13 @@ export default function PreviousResourcesPage() {
       title: "Name",
       dataIndex: "file_name",
       key: "file_name",
-      render: (name, record) => (
+      render: (name: string, record) => (
         <div className="flex items-center space-x-3">
           {getFileTypeIcon(record.file_type)}
-          <span className="font-medium text-gray-800 truncate max-w-[200px]">
+          <span
+            title={name}
+            className="font-medium text-gray-800 truncate max-w-[300px] min-w-[200px]"
+          >
             {name}
           </span>
         </div>
